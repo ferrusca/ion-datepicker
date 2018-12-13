@@ -6,12 +6,12 @@ export interface DatePickerData {
     cancelText?: string,
     min?: Date,
     max?: Date,
-    ionChanged: EventEmitter<Date>,
-    ionSelected: EventEmitter<Date>,
+    ionChanged: EventEmitter<Date[]>,
+    ionSelected: EventEmitter<Date[]>,
     ionCanceled: EventEmitter<void>,
     headerClasses?: string[],
     bodyClasses?: string[],
-    date?: Date
+    date?: Date[]
     locale?: languages;
     disabledDates: Date[];
     calendar: boolean;
