@@ -54,7 +54,9 @@ import { DateService } from '../services/datepicker.service';
                     *ngFor="let day of cols;let j=index;"
                     [ngClass]="{
                   'datepicker-date-col': getDate(i, j) !== undefined,
-                  'datepicker-selected': isSelectedDate(getDate(i, j)),
+                  'datepicker-start': isSelectedStartDate(getDate(i, j)),
+                  'datepicker-end': isSelectedEndDate(getDate(i, j)),
+                  'datepicker-between': isBetweenDates(getDate(i, j)),
                   'datepicker-current' : isActualDate(getDate(i, j)),
                   'datepicker-disabled': isDisabled(getDate(i, j)),
                   'datepicker-temp': isTempDate(getDate(i, j)),
@@ -68,21 +70,21 @@ import { DateService } from '../services/datepicker.service';
     </div>
     <div [hidden]="view !== views.Year" #yearScroll class="datepicker-rows">
         <ng-container  *ngFor="let year of years">    
-            <div  *ngIf="testYear(year) && view === views.Year" (tap)="setSelectedYear(year)" [class.active]="getTempYear() === year" [class.selected]="getSelectedYear() === year" class="row">
+            <div  *ngIf="testYear(year) && view === views.Year" (tap)="setSelectedYear(year, index)" [class.active]="getTempYear() === year" [class.selected]="getSelectedYear() === year" class="row">
                 {{year}}
             </div>
         </ng-container>
     </div>
         <div [hidden]="view !== views.Month" #monthScroll class="datepicker-rows">
         <ng-container *ngFor="let month of months;let i = index">
-            <div  *ngIf="testMonth(i)  && view === views.Month" (tap)="setSelectedMonth(i)" [class.active]="getTempMonth() === month" [class.selected]="getSelectedMonth() === month"   class="row">
+            <div  *ngIf="testMonth(i)  && view === views.Month" (tap)="setSelectedMonth(i, index)" [class.active]="getTempMonth() === month" [class.selected]="getSelectedMonth() === month"   class="row">
                 {{month}}
             </div>
         </ng-container>
     </div>
     <div [hidden]="view !== views.Day" #dayScroll class="datepicker-rows">
        <ng-container *ngFor="let day of getDayList()">
-            <div class="row" *ngIf="testDay(day)  && view === views.Day" [class.active]="getTempDate() === day" [class.selected]="getSelectedDate() === day" (tap)="setSelectedDay(day)" >
+            <div class="row" *ngIf="testDay(day)  && view === views.Day" [class.active]="getTempDate() === day" [class.selected]="getSelectedDate() === day" (tap)="setSelectedDay(day, index)" >
                 {{day}}
             </div>
         </ng-container>
@@ -207,19 +209,50 @@ ionic2-datepicker .datepicker-calendar .calendar-wrapper .datepicker-mark {
   background-color:#5b6c6b;
   border-radius: 20px;
 }
-ionic2-datepicker .datepicker-calendar .calendar-wrapper .datepicker-selected {
-  background-color: #b6d9d6;
-  border-radius: 20px;
+ionic2-datepicker .datepicker-calendar .calendar-wrapper .datepicker-start {
+  background-color: #2e72e1;
+}
+ionic2-datepicker .datepicker-calendar .calendar-wrapper .datepicker-end {
+  background-color: #2e72e1;
+}
+ionic2-datepicker .datepicker-calendar .calendar-wrapper .datepicker-between {
+  background-color: #c5d2eb;
+}
+ionic2-datepicker .datepicker-calendar .calendar-wrapper .datepicker-start:before {
+    content: '';
+    display: block;
+    position: absolute;
+    width: 0;
+    right: -5px;
+    z-index: 1;
+    height: 0;
+    top: 7.2px;
+    border-top: 6px solid transparent;
+    border-left: 6px solid #2D72E1;
+    border-bottom: 6px solid transparent;
+}
+
+ionic2-datepicker .datepicker-calendar .calendar-wrapper .datepicker-end:before {
+    content: '';
+    display: block;
+    position: absolute;
+    width: 0;
+    left: -5px;
+    z-index: 1;
+    height: 0;
+    top: 7.2px;
+    border-top: 6px solid transparent;
+    border-right: 6px solid #2D72E1;
+    border-bottom: 6px solid transparent;
 }
 
 ionic2-datepicker .datepicker-calendar .calendar-wrapper .datepicker-temp {
-    background-color: #b6c2d9;
-    border-radius: 20px;
+    background-color: #6f90cc;
+    border-radius: 0px;
 }
 
 ionic2-datepicker .datepicker-calendar .calendar-wrapper .datepicker-current {
-  color: #3caa9f;
-  border-radius: 20px;
+  border-radius: 0px;
 }
 ionic2-datepicker .datepicker-calendar .calendar-wrapper .datepicker-disabled {
   color: #aaaaaa;
@@ -258,7 +291,7 @@ export class DatePickerComponent {
      * @description - The currently selected date when opening the datepicker
      * @memberof DatePickerComponent
      */
-    public selectedDate: Date = new Date();
+    public selectedDate: Date[] = [];
     /**
      * 
      * @type {Date[]}
@@ -318,12 +351,21 @@ export class DatePickerComponent {
     /**
      * 
      * @private
-     * @type {Date}
-     * @description - The selected date after opening the datepicker
+     * @type {Date[]}
+     * @description - The selected dates after opening the datepicker
      * @memberof DatePickerComponent
      */
 
-    private tempDate: Date;
+    private tempDate: Date[];
+    /**
+     * 
+     * @private
+     * @type {number}
+     * @description - Current index from two dates to select
+     * @memberof DatePickerComponent
+     */
+
+    private index: number;
     /**
      * 
      * @private
@@ -347,7 +389,15 @@ export class DatePickerComponent {
         this.config = this.navParams.data;
         if (!this.config.calendar)
             this.view = this.views.Day;
-        this.selectedDate = this.navParams.data.date;
+        let n = 0
+        // this.selectedDate = this.navParams.data.date;
+        for (let key in this.navParams.data.date) {
+            // If it's not null or something.
+            if (this.navParams.data.date[key] !== null) {
+                this.selectedDate[n] = this.navParams.data.date[key]
+            }
+            n += 1
+        }
         this.initialize();
     }
 
@@ -361,11 +411,16 @@ export class DatePickerComponent {
             this.config.min.setHours(0, 0, 0, 0);
         if (this.config.max)
             this.config.max.setHours(0, 0, 0, 0);
-        this.tempDate = this.selectedDate;
-        this.createDateList(this.selectedDate);
+        this.tempDate = []
+        this.selectedDate.forEach(sd => {
+            this.tempDate.push(sd)
+        })
+        // Passing start date or today's date
+        this.createDateList(this.selectedDate.length > 0 ? this.selectedDate[0] : new Date());
         this.weekdays = this.DatepickerService.getDaysOfWeek();
         this.months = this.DatepickerService.getMonths();
         this.years = this.DatepickerService.getYears();
+        this.index = 0
     }
 
     /**
@@ -431,7 +486,8 @@ export class DatePickerComponent {
     */
     public testYear(year: number): boolean {
         if (year === undefined) return false;
-        let testDate = new Date(year, this.tempDate.getMonth(), this.tempDate.getDate());
+        let baseDate = this.tempDate.length > 0 ? this.tempDate[0] : new Date()
+        let testDate = new Date(year, baseDate.getMonth(), baseDate.getDate());
         return !this.isDisabled(testDate);
     }
 
@@ -442,7 +498,8 @@ export class DatePickerComponent {
     */
     public testMonth(month: number): boolean {
         if (month === undefined) return false;
-        let testDate = new Date(this.tempDate.getFullYear(), month, this.tempDate.getDate());
+        let baseDate = this.tempDate.length > 0 ? this.tempDate[0] : new Date()
+        let testDate = new Date(baseDate.getFullYear(), month, baseDate.getDate());
         return !this.isDisabled(testDate);
     }
 
@@ -453,7 +510,8 @@ export class DatePickerComponent {
     */
     public testDay(day: number): boolean {
         if (day === undefined) return false;
-        let testDate = new Date(this.tempDate.getFullYear(), this.tempDate.getMonth(), day);
+        let baseDate = this.tempDate.length > 0 ? this.tempDate[0] : new Date()
+        let testDate = new Date(baseDate.getFullYear(), baseDate.getMonth(), day);
         return !this.isDisabled(testDate);
     }
 
@@ -493,7 +551,7 @@ export class DatePickerComponent {
     */
     public isSelectedDate(date: Date): boolean {
         if (!date) return false;
-        return this.areEqualDates(date, this.selectedDate);
+        return this.areSelectedDates(date, this.selectedDate);
     }
 
     /**
@@ -505,7 +563,43 @@ export class DatePickerComponent {
     */
     public isTempDate(date: Date): boolean {
         if (!date) return false;
-        return this.areEqualDates(date, this.tempDate);
+        return this.areSelectedDates(date, this.tempDate);
+    }
+
+    /**
+    * 
+    * @function isSelectedStart - Checks whether the date is the start date.
+    * @param {Date} date - date to check
+    * @returns {boolean} 
+    * @memberof DatePickerComponent
+    */
+    public isSelectedStartDate(date: Date): boolean {
+        if (!date || this.tempDate.length === 0) return false;
+        return this.areEqualDates(date, this.tempDate[0]);
+    }
+
+    /**
+    * 
+    * @function isSelectedStart - Checks whether the date is the start date.
+    * @param {Date} date - date to check
+    * @returns {boolean} 
+    * @memberof DatePickerComponent
+    */
+    public isSelectedEndDate(date: Date): boolean {
+        if (!date || this.tempDate.length < 2) return false;
+        return this.areEqualDates(date, this.tempDate[1]);
+    }
+
+    /**
+    * 
+    * @function isBetweenDates - Checks whether the date is the range of dates.
+    * @param {Date} date - date to check
+    * @returns {boolean} 
+    * @memberof DatePickerComponent
+    */
+    public isBetweenDates(date: Date): boolean {
+        if (!date || this.tempDate.length !== 2) return false;
+        return this.isInRange(date, this.tempDate[0], this.tempDate[1])
     }
 
     /**
@@ -517,9 +611,16 @@ export class DatePickerComponent {
      */
     public selectDate(date: Date): void {
         if (this.isDisabled(date)) return;
-        this.tempDate = date;
-        this.tempDate.setHours(0, 0, 0, 0);
-        this.config.ionSelected.emit(this.tempDate);
+        //at 3rd click, selected dates will be deleted
+        if(this.index === 2) {
+            this.tempDate = []
+            this.index = 0
+        }
+        date.setHours(0, 0, 0, 0);
+        // this.index = this.getNearestDate(date, this.tempDate);
+        this.tempDate[this.index] = date;
+        this.index += 1
+        // this.config.ionSelected.emit(this.tempDate);
     }
     /**
      * 
@@ -528,7 +629,7 @@ export class DatePickerComponent {
      * @memberof DatePickerComponent
      */
     public getSelectedWeekday(): string {
-        let day = this.tempDate.getDay();
+        let day = (this.tempDate[0] || new Date()).getDay();
         let dayAdjust = 0;
         // go back to sunday which is 6
         // TODO: FIND BETTER WAY TO DO THIS. LIKE A ROTATE ARRAY
@@ -545,7 +646,7 @@ export class DatePickerComponent {
     * @memberof DatePickerComponent
     */
     public getSelectedMonth(): string {
-        return this.months[this.tempDate.getMonth()];
+        return this.months[(this.tempDate[0] || new Date()).getMonth()];
     }
 
 
@@ -556,9 +657,10 @@ export class DatePickerComponent {
     * @memberof DatePickerComponent
     */
     public getDayList(): string[] {
-        var date = new Date(this.tempDate.getFullYear(), this.tempDate.getMonth(), 1);
+        let baseDate = this.tempDate.length > 0 ? this.tempDate[0] : new Date()
+        var date = new Date(baseDate.getFullYear(), baseDate.getMonth(), 1);
         var days = [];
-        while (date.getMonth() === this.tempDate.getMonth()) {
+        while (date.getMonth() === baseDate.getMonth()) {
             days.push(new Date(date).getDate());
             date.setDate(date.getDate() + 1);
         }
@@ -572,7 +674,7 @@ export class DatePickerComponent {
     * @memberof DatePickerComponent
     */
     public getTempMonth(): string {
-        return this.months[this.tempDate.getMonth()];
+        return this.tempDate.length > 0 ? this.months[this.tempDate[0].getMonth()] : this.months[new Date().getMonth()];
     }
 
     /**
@@ -582,7 +684,10 @@ export class DatePickerComponent {
     * @memberof DatePickerComponent
     */
     public getTempYear(): number {
-        return (this.tempDate || this.selectedDate).getFullYear();
+        if (this.tempDate.length > 0 || this.selectedDate.length > 0)
+            return (this.tempDate || this.selectedDate)[0].getFullYear();
+        return new Date().getFullYear();
+        
     }
 
     /**
@@ -592,7 +697,9 @@ export class DatePickerComponent {
     * @memberof DatePickerComponent
     */
     public getTempDate(): number {
-        return (this.tempDate || this.selectedDate).getDate();
+        if (this.tempDate.length > 0 || this.selectedDate.length > 0)
+            return (this.tempDate || this.selectedDate)[0].getDate();
+        return new Date().getDate()
     }
 
     /**
@@ -602,7 +709,7 @@ export class DatePickerComponent {
     * @memberof DatePickerComponent
     */
     public getSelectedDate(): number {
-        return (this.selectedDate || new Date()).getDate();
+        return (this.selectedDate[0] || new Date()).getDate();
     }
 
     /**
@@ -612,7 +719,7 @@ export class DatePickerComponent {
     * @memberof DatePickerComponent
     */
     public getSelectedYear(): number {
-        return (this.selectedDate || new Date()).getFullYear();
+        return (this.selectedDate[0] || new Date()).getFullYear();
     }
 
     /**
@@ -620,9 +727,9 @@ export class DatePickerComponent {
     * @function setSelectedMonth - Sets the selected month
     * @memberof DatePickerComponent
     */
-    public setSelectedMonth(month: number): void {
-        this.tempDate = new Date(this.tempDate.getFullYear(), month, this.tempDate.getDate());
-        this.createDateList(this.tempDate);
+    public setSelectedMonth(month: number, index: number): void {
+        this.tempDate[index] = new Date(this.tempDate[index].getFullYear(), month, this.tempDate[index].getDate());
+        this.createDateList(this.tempDate[index]);
         if (this.config.calendar)
             this.view = this.views.Calendar;
     }
@@ -632,8 +739,8 @@ export class DatePickerComponent {
     * @function setSelectedMonth - Sets the selected month
     * @memberof DatePickerComponent
     */
-    public setSelectedDay(day: number): void {
-        this.tempDate = new Date(this.tempDate.getFullYear(), this.tempDate.getMonth(), day);
+    public setSelectedDay(day: number, index: number): void {
+        this.tempDate[index] = new Date(this.tempDate[index].getFullYear(), this.tempDate[index].getMonth(), day);
         if (this.config.calendar)
             this.view = this.views.Calendar;
     }
@@ -643,9 +750,9 @@ export class DatePickerComponent {
     * @function setSelectedYear - Sets the selected year
     * @memberof DatePickerComponent
     */
-    public setSelectedYear(year: number): void {
-        this.tempDate = new Date(year, this.tempDate.getMonth(), this.tempDate.getDate());
-        this.createDateList(this.tempDate);
+    public setSelectedYear(year: number, index: number): void {
+        this.tempDate[index] = new Date(year, this.tempDate[index].getMonth(), this.tempDate[index].getDate());
+        this.createDateList(this.tempDate[index]);
         if (this.config.calendar)
             this.view = this.views.Calendar;
     }
@@ -671,7 +778,7 @@ export class DatePickerComponent {
      */
     public onCancel(): void {
         if (this.config.date)
-            this.selectedDate = this.config.date || new Date();
+            this.selectedDate = this.config.date || [new Date(), new Date()];
         this.config.ionCanceled.emit();
         this.viewCtrl.dismiss();
     };
@@ -682,7 +789,7 @@ export class DatePickerComponent {
     * @memberof DatePickerComponent
     */
     public onDone(): void {
-        this.config.date = this.tempDate;
+        this.config.date = this.sortDates(this.tempDate)
         this.config.ionChanged.emit(this.config.date);
         this.viewCtrl.dismiss();
     };
@@ -736,7 +843,8 @@ export class DatePickerComponent {
      */
     public nextMonth() {
         //if (this.max.getMonth() < this.tempDate.getMonth() + 1 && this.min.getFullYear() === this.tempDate.getFullYear()) return;
-        let testDate: Date = new Date(this.tempDate.getTime());
+        let base = this.tempDate[0] || new Date()
+        let testDate: Date = new Date(base.getTime());
 
         if (testDate.getMonth() === 11) {
             testDate.setFullYear(testDate.getFullYear() + 1);
@@ -745,7 +853,7 @@ export class DatePickerComponent {
         else {
             testDate.setMonth(testDate.getMonth() + 1);
         }
-        if (testDate.getDate() !== this.tempDate.getDate()) {
+        if (testDate.getDate() !== base.getDate()) {
             // something went wrong with the dates, oh oh.
             testDate = new Date(testDate.getFullYear(), testDate.getMonth(), 0);
         }
@@ -761,8 +869,8 @@ export class DatePickerComponent {
                     testDate.setDate(this.config.max.getDate());
                 }
             }
-            this.tempDate = testDate;
-            this.createDateList(this.tempDate);
+            this.tempDate[this.index] = testDate;
+            this.createDateList(this.tempDate[this.index]);
         }
     }
 
@@ -772,10 +880,11 @@ export class DatePickerComponent {
      * @memberof DatePickerComponent
      */
     public prevMonth() {
-        let testDate: Date = new Date(this.tempDate.getTime());
+        let base = this.tempDate[0] || new Date()
+        let testDate: Date = new Date(base.getTime());
         testDate.setMonth(testDate.getMonth() - 1);
         // testDate.setDate(this.tempDate.getDate());
-        if (testDate.getDate() !== this.tempDate.getDate()) {
+        if (testDate.getDate() !== base.getDate()) {
             // something went wrong with the dates, oh oh.
             testDate = new Date(testDate.getFullYear(), testDate.getMonth(), 0);
         }
@@ -790,8 +899,8 @@ export class DatePickerComponent {
                     testDate.setDate(this.config.min.getDate());
                 }
             }
-            this.tempDate = testDate;
-            this.createDateList(this.tempDate);
+            this.tempDate[this.index] = testDate;
+            this.createDateList(this.tempDate[this.index]);
         }
     }
 
@@ -808,5 +917,87 @@ export class DatePickerComponent {
         return dateA.getDate() === dateB.getDate() &&
             dateA.getMonth() === dateB.getMonth() &&
             dateA.getFullYear() === dateB.getFullYear();
+    }
+
+    /**
+     * 
+     * @function isInRange - checks whether date is between two dates
+     * @private
+     * @param {Date} date - date to check
+     * @param {Date} startDate - start date to compare
+     * @param {Date} endDate - end date to compare
+     * @returns 
+     * @memberof DatePickerComponent
+     */
+    private isInRange(date: Date, startDate: Date, endDate: Date): boolean {
+        if(
+            (date.getTime() > startDate.getTime() && date.getTime() < endDate.getTime()) || 
+            (date.getTime() < startDate.getTime() && date.getTime() > endDate.getTime())
+        )
+            return true
+        return false
+    }
+
+    /**
+     * 
+     * @function areSelectedDates - compares 1 date with an Date array only by their month,date & year
+     * @private
+     * @param {Date} dateA - first date to compare
+     * @param {Date} selectedDates - array with dates to compare 
+     * @returns 
+     * @memberof DatePickerComponent
+     */
+    private areSelectedDates(dateA: Date, selectedDates: Date[]): boolean {
+        let foo = false
+        selectedDates.forEach(ad => {
+            if(
+                dateA.getDate() === ad.getDate() &&
+                dateA.getMonth() === ad.getMonth() &&
+                dateA.getFullYear() === ad.getFullYear()
+            )
+                foo = true
+        })
+        return foo
+    }
+
+    /**
+     * 
+     * @function selectNearDate - choose which date will be replaced by the new date
+     * @private
+     * @param {Date} date - new date to compare
+     * @param {Date} selectedDates - array with dates to replace 
+     * @returns 
+     * @memberof DatePickerComponent
+     */
+    private getNearestDate(date: Date, selectedDates: Date[]): number {
+        //If there's one date selected by user, second date must be in the end of range.
+        if (selectedDates.length === 0) return 0
+        if (selectedDates.length === 1) return 1
+        // if (selectedDates.length === 1){
+        //     let index = 1
+        //     selectedDates.forEach(sd =>{
+        //         if(this.isActualDate(sd)) index = 0;
+        //     })
+        //     return index
+        // }
+        let diff = []
+        selectedDates.forEach(sd => {
+            diff.push(Math.abs(date.getTime() - sd.getTime()))
+        })
+        return diff.indexOf(Math.min(...diff))
+    }
+
+    /**
+     * 
+     * @function sortDates - sort in ascendent mode
+     * @private
+     * @param {Date} dates - array with dates to sort
+     * @returns 
+     * @memberof DatePickerComponent
+     */
+    private sortDates(dates: Date[]): Date[] {
+        return dates.sort(function(a,b){
+            return a.getTime() - b.getTime()
+        })
     }
 }
