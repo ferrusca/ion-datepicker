@@ -11,10 +11,9 @@ import { DateService } from '../services/datepicker.service';
   selector: 'ion-datepicker,[ion-datepicker]',
 })
 export class DatePickerDirective {
-  @Output('ionSelected') public selected: EventEmitter<string | Date[]> = new EventEmitter<string | Date[]>();
+  @Output('ionSelected') public selected: EventEmitter<string | any> = new EventEmitter<string | any>();
   @Output('ionChanged') public changed: EventEmitter<string | Date[]> = new EventEmitter<string | Date[]>();
   @Output('ionCanceled') public canceled: EventEmitter<void> = new EventEmitter<void>();
-
   @Input() public max: Date;
   @Input() public min: Date;
   @Input() public set locale(val: string) {
@@ -33,17 +32,19 @@ export class DatePickerDirective {
   @Input() public bodyClasses: Array<string>;
   @Input() public headerClasses: Array<string>;
   @Input() public modalOptions: ModalOptions;
-  @Input() public value: Date[] = [new Date(), new Date()];
+  //TODO create two types for 'value': Date[] or Date
+  @Input() public value: any;
   @Output() public valueChange: EventEmitter<string | Date[]> = this.changed;
   @Input() public disabledDates: Date[] = [];
   @Input() public markDates: Date[] = [];
   @Input() public calendar: boolean = true;
+  @Input() public doubleDate: boolean = false;
   public modal: DatePickerDisplayer;
   private _fn: any;
   constructor(
     public datepickerCtrl: DatePickerController,
     public dateService: DateService) {
-    this.changed.subscribe((d: Date[]) => {
+    this.changed.subscribe((d: any) => { //typeof returned "d" may be Date or Date[]
       this.value = d;
     });
   }
@@ -68,6 +69,7 @@ export class DatePickerDirective {
       disabledDates: this.disabledDates,
       markDates: this.markDates,
       calendar: this.calendar,
+      doubleDate: this.doubleDate
     }
     this.modal = this.datepickerCtrl.create(data, this.modalOptions);
     this.modal.present();

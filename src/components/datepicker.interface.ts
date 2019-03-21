@@ -11,11 +11,12 @@ export interface DatePickerData {
     ionCanceled: EventEmitter<void>,
     headerClasses?: string[],
     bodyClasses?: string[],
-    date?: Date[]
+    date?: any;
     locale?: languages;
     disabledDates: Date[];
     calendar: boolean;
     markDates: Date[];
+    doubleDate: boolean;
 }
 
 export enum DatePickerView {
