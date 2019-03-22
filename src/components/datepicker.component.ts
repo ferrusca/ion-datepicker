@@ -392,22 +392,13 @@ export class DatePickerComponent {
         if(!this.config.doubleDate) {
             this.selectedDate = this.navParams.data.date || new Date();
         } else {
-            let n = 0
-            this.selectedDate = this.navParams.data.date || [new Date()];
+            this.selectedDate = this.navParams.data.date;
             if(
                 !Array.isArray(this.selectedDate) ||
                 this.selectedDate.length < 1
             ) {
-                this.selectedDate = []
-                this.selectedDate[0] = new Date()
+                this.selectedDate = [new Date()] 
             }
-            // for (let key in this.navParams.data.date) {
-            //     // If it's not null or something.
-            //     if (this.navParams.data.date[key]) {
-            //         this.selectedDate[n] = this.navParams.data.date[key]
-            //     }
-            //     n += 1
-            // }
         }
         this.initialize();
     }
@@ -422,17 +413,7 @@ export class DatePickerComponent {
             this.config.min.setHours(0, 0, 0, 0);
         if (this.config.max)
             this.config.max.setHours(0, 0, 0, 0);
-        if(!this.config.doubleDate) {
-            debugger
-            this.tempDate = this.selectedDate;
-        } else {
-            debugger
-            //TODO: WHY CANNOT DO THIS? -> this.tempDate = this.selectedDate  
-            this.tempDate = this.selectedDate
-            // this.selectedDate.forEach(sd => {
-            //     this.tempDate.push(sd);
-            // })
-        }
+        this.tempDate = this.selectedDate;
         // Passing start date or today's date
         this.config.doubleDate 
             ? this.createDateList(this.selectedDate[0])
@@ -611,7 +592,7 @@ export class DatePickerComponent {
     */
     public isSelectedEndDate(date: Date): boolean {
         if (!date || this.tempDate.length < 2 || !this.config.doubleDate) return false;
-        return this.areEqualDates(date, this.tempDate[1]);
+        return this.areEqualDates(date, this.tempDate[1] || new Date());
     }
 
     /**
@@ -622,8 +603,9 @@ export class DatePickerComponent {
     * @memberof DatePickerComponent
     */
     public isBetweenDates(date: Date): boolean {
-        if (!date || this.tempDate.length !== 2 || !this.config.doubleDate) return false;
-        return this.isInRange(date, this.tempDate[0], this.tempDate[1])
+        if (!date || this.tempDate.length < 1 || !this.config.doubleDate) return false;
+        // new Date() makes calendar select days between first date and today
+        return this.isInRange(date, this.tempDate[0], (this.tempDate[1] || new Date())) 
     }
 
     /**
@@ -719,7 +701,7 @@ export class DatePickerComponent {
     */
     public getTempMonth(): string {
         return this.config.doubleDate  
-            ? this.months[(this.tempDate[0] || new Date()).getMonth()]
+            ? this.months[(this.tempDate[this.tempDate.length-1]).getMonth()]
             : this.months[this.tempDate.getMonth()];
     }
 
@@ -731,7 +713,7 @@ export class DatePickerComponent {
     */
     public getTempYear(): number {
         return this.config.doubleDate
-            ? (this.tempDate || this.selectedDate)[0].getFullYear()
+            ? this.tempDate[this.tempDate.length-1].getFullYear()
             : (this.tempDate || this.selectedDate).getFullYear();
     }
 
@@ -743,7 +725,7 @@ export class DatePickerComponent {
     */
     public getTempDate(): number {
         return this.config.doubleDate 
-            ? (this.tempDate || this.selectedDate)[0].getDate()
+            ? this.tempDate[this.tempDate.length-1].getDate()
             : (this.tempDate || this.selectedDate).getDate();
     }
 
@@ -894,8 +876,8 @@ export class DatePickerComponent {
      */
     public nextMonth() {
         //if (this.max.getMonth() < this.tempDate.getMonth() + 1 && this.min.getFullYear() === this.tempDate.getFullYear()) return;
-        let base = this.config.doubleDate 
-            ? this.tempDate[0] || new Date()
+        let base = this.config.doubleDate
+            ? this.tempDate[this.tempDate.length-1]
             : this.tempDate
         let testDate: Date = new Date(base.getTime());
 
@@ -938,8 +920,8 @@ export class DatePickerComponent {
      * @memberof DatePickerComponent
      */
     public prevMonth() {
-        let base = this.config.doubleDate 
-            ? this.tempDate[0] || new Date()
+        let base = this.config.doubleDate
+            ? this.tempDate[this.tempDate.length-1]
             : this.tempDate
         let testDate: Date = new Date(base.getTime());
         testDate.setMonth(testDate.getMonth() - 1);

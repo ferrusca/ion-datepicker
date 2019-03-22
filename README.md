@@ -43,6 +43,7 @@
 
 ## Options ###
 
+ `[doubleDate]` - A boolean that determines whether calendar will pick a single date or a date range.
 
  `[value]` - defines the initial value, can be two bindable as in [(value)].
 
