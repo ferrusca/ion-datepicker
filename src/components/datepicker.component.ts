@@ -357,6 +357,8 @@ export class DatePickerComponent {
      */
 
     private tempDate: any;
+    private selected: boolean = false;
+    private selectingIndex: number = 0;
     /**
      * 
      * @private
@@ -385,19 +387,25 @@ export class DatePickerComponent {
     constructor(
         public viewCtrl: ViewController,
         public navParams: NavParams,
-        public DatepickerService: DateService) {
+        public DatepickerService: DateService,
+    ) {
         this.config = this.navParams.data;
         if (!this.config.calendar)
             this.view = this.views.Day;
         if(!this.config.doubleDate) {
-            this.selectedDate = this.navParams.data.date || new Date();
+            this.selectedDate = this.config.date || new Date();
         } else {
-            this.selectedDate = this.navParams.data.date;
-            if(
-                !Array.isArray(this.selectedDate) ||
-                this.selectedDate.length < 1
-            ) {
-                this.selectedDate = [new Date()] 
+            //check if input is an array or object
+            if(Array.isArray(this.config.date)) {
+                this.selectedDate = this.config.date;
+                this.selected = true
+            } else if (typeof this.config.date === 'object') {
+                this.selectedDate[0] = this.config.date.from
+                this.selectedDate[1] = this.config.date.to
+                this.selected = true
+            } else {
+                //default behavior
+                this.selectedDate = [new Date()]
             }
         }
         this.initialize();
@@ -573,7 +581,7 @@ export class DatePickerComponent {
 
     /**
     * 
-    * @function isSelectedStart - Checks whether the date is the start date.
+    * @function isSelectedStartDate - Checks whether the date is the start date.
     * @param {Date} date - date to check
     * @returns {boolean} 
     * @memberof DatePickerComponent
@@ -585,7 +593,7 @@ export class DatePickerComponent {
 
     /**
     * 
-    * @function isSelectedStart - Checks whether the date is the start date.
+    * @function isSelectedEndDate - Checks whether the date is the start date.
     * @param {Date} date - date to check
     * @returns {boolean} 
     * @memberof DatePickerComponent
@@ -644,6 +652,11 @@ export class DatePickerComponent {
         date.setHours(0, 0, 0, 0);
         // this.index = this.getNearestDate(date, this.tempDate);
         this.tempDate[this.index] = date;
+        if(this.index === 1){
+            this.selectingIndex = 1
+        } else if (this.index === 0) {
+            this.selectingIndex = 0          
+        }
         this.index += 1
     }
     /**
@@ -701,7 +714,9 @@ export class DatePickerComponent {
     */
     public getTempMonth(): string {
         return this.config.doubleDate  
-            ? this.months[(this.tempDate[this.tempDate.length-1]).getMonth()]
+            ? this.selected 
+                ? this.months[(this.tempDate[this.selectingIndex]).getMonth()]
+                : this.months[(this.tempDate[this.tempDate.length-1]).getMonth()]
             : this.months[this.tempDate.getMonth()];
     }
 
@@ -713,7 +728,9 @@ export class DatePickerComponent {
     */
     public getTempYear(): number {
         return this.config.doubleDate
-            ? this.tempDate[this.tempDate.length-1].getFullYear()
+            ? this.selected 
+                ? this.tempDate[this.selectingIndex].getFullYear()
+                : this.tempDate[this.tempDate.length-1].getFullYear()
             : (this.tempDate || this.selectedDate).getFullYear();
     }
 
@@ -725,7 +742,9 @@ export class DatePickerComponent {
     */
     public getTempDate(): number {
         return this.config.doubleDate 
-            ? this.tempDate[this.tempDate.length-1].getDate()
+            ? this.selected 
+                ? this.tempDate[this.selectingIndex].getDate()
+                : this.tempDate[this.tempDate.length-1].getDate()
             : (this.tempDate || this.selectedDate).getDate();
     }
 
@@ -877,7 +896,9 @@ export class DatePickerComponent {
     public nextMonth() {
         //if (this.max.getMonth() < this.tempDate.getMonth() + 1 && this.min.getFullYear() === this.tempDate.getFullYear()) return;
         let base = this.config.doubleDate
-            ? this.tempDate[this.tempDate.length-1]
+            ? this.selected 
+                ? this.tempDate[this.selectingIndex]
+                : this.tempDate[this.tempDate.length-1]
             : this.tempDate
         let testDate: Date = new Date(base.getTime());
 
@@ -921,7 +942,9 @@ export class DatePickerComponent {
      */
     public prevMonth() {
         let base = this.config.doubleDate
-            ? this.tempDate[this.tempDate.length-1]
+            ? this.selected 
+                ? this.tempDate[this.selectingIndex]
+                : this.tempDate[this.tempDate.length-1]
             : this.tempDate
         let testDate: Date = new Date(base.getTime());
         testDate.setMonth(testDate.getMonth() - 1);
