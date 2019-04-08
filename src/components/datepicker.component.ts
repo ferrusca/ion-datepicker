@@ -358,6 +358,7 @@ export class DatePickerComponent {
 
     private tempDate: any;
     private selectingIndex: number = 0;
+    private touched: boolean = false
     /**
      * 
      * @private
@@ -397,12 +398,8 @@ export class DatePickerComponent {
             //check if input is an array or object
             this.selectedDate = [];
             if(Array.isArray(this.config.date)) {
+                debugger
                 this.selectedDate = this.config.date;
-            } else if (typeof this.config.date === 'object') {
-                this.selectedDate[0] = this.config.date.from || new Date();
-                if(this.config.date.to) {
-                    this.selectedDate[1] = this.config.date.to;
-                }
             } else {
                 //default behavior
                 this.selectedDate = [new Date()]
@@ -590,7 +587,13 @@ export class DatePickerComponent {
     * @memberof DatePickerComponent
     */
     public isSelectedStartDate(date: Date): boolean {
-        if (!date || this.tempDate.length === 0 || !this.config.doubleDate) return false;
+        if (!date || !this.config.doubleDate || this.tempDate.length === 0) return false;
+        if (
+            this.config.doubleDate &&
+            this.tempDate.length === 2 &&
+            this.areEqualDates(this.tempDate[0], this.tempDate[1])
+        )
+            return false;
         return this.areEqualDates(date, this.tempDate[0]);
     }
 
@@ -602,8 +605,13 @@ export class DatePickerComponent {
     * @memberof DatePickerComponent
     */
     public isSelectedEndDate(date: Date): boolean {
-        if (!date || this.tempDate.length < 2 || !this.config.doubleDate) return false;
-        if (this.selectDate[1] && this.areEqualDates(this.selectDate[0], this.selectDate[1])) return false
+        if (!date || !this.config.doubleDate || this.tempDate.length < 2) return false;
+        if (
+            this.config.doubleDate &&
+            this.tempDate.length === 2 &&
+            this.areEqualDates(this.tempDate[0], this.tempDate[1])
+        )
+            return false;
         return this.areEqualDates(date, this.tempDate[1] || new Date());
     }
 
@@ -648,7 +656,7 @@ export class DatePickerComponent {
             this.selectSingleDate(date)
             return 
         }
-        if (this.tempDate.length === 2 && this.index === 0) {
+        if (this.tempDate.length === 2 && this.index === 0 && this.touched) {
             this.tempDate = []
         }
         //at 3rd click, selected dates will be deleted
@@ -658,6 +666,7 @@ export class DatePickerComponent {
         this.sortDates(this.tempDate)
         this.selectingIndex = this.index
         this.index = (this.index + 1) % 2
+        this.touched = true
     }
     /**
      * 
